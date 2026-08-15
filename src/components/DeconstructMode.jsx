@@ -266,6 +266,7 @@ export default function DeconstructMode({ phrase, onComplete, isCompleted }) {
                 }}
                 onDrag={handleDrag}
                 onDragEnd={(e, info) => handleDragEnd(e, info, wordObj)}
+                onTap={() => handleWordClick(wordObj.id, wordObj.text)}
                 onClick={() => handleWordClick(wordObj.id, wordObj.text)}
                 className={`px-4 py-3 rounded-2xl font-bold text-base cursor-grab select-none button-pop transition-colors flex items-center gap-2 touch-none ${
                   isSpeaking
@@ -274,11 +275,21 @@ export default function DeconstructMode({ phrase, onComplete, isCompleted }) {
                 }`}
               >
                 <span>{wordObj.text}</span>
-                <Volume2
-                  className={`w-4 h-4 transition-colors ${
-                    isSpeaking ? 'text-purple-600 animate-pulse' : 'text-gray-300 hover:text-purple-400'
-                  }`}
-                />
+                <button
+                  type="button"
+                  onPointerDown={(e) => {
+                    e.stopPropagation()
+                    handleWordClick(wordObj.id, wordObj.text)
+                  }}
+                  className="p-1 -mr-1 rounded-full hover:bg-purple-100 text-gray-400 hover:text-purple-600 transition-colors"
+                  aria-label="Listen to word"
+                >
+                  <Volume2
+                    className={`w-4 h-4 transition-colors ${
+                      isSpeaking ? 'text-purple-600 animate-pulse' : 'text-gray-400 hover:text-purple-500'
+                    }`}
+                  />
+                </button>
               </motion.div>
             )
           })}

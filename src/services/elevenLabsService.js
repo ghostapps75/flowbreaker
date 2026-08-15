@@ -14,26 +14,16 @@ export const ELEVENLABS_VOICES = [
   { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Crisp & natural male voice' },
 ]
 
-function getBrowserVoices() {
-  return new Promise((resolve) => {
-    const voices = window.speechSynthesis?.getVoices() ?? []
-    if (voices.length > 0) {
-      resolve(voices)
-      return
-    }
-    if (window.speechSynthesis) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        resolve(window.speechSynthesis.getVoices())
-      }
-      setTimeout(() => resolve(window.speechSynthesis?.getVoices() ?? []), 1000)
-    } else {
-      resolve([])
-    }
-  })
+// Pre-warm browser voices on module load
+if (typeof window !== 'undefined' && window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices()
+  }
+  window.speechSynthesis.getVoices()
 }
 
 function isNaturalVoice(v) {
-  const n = v.name.toLowerCase()
+  const n = (v.name || '').toLowerCase()
   return (
     v.localService === false ||
     n.includes('neural') ||
@@ -46,57 +36,66 @@ function isNaturalVoice(v) {
 }
 
 /**
- * Pick the best available Bulgarian (or fallback) browser voice.
+ * Pick the best available Bulgarian browser voice.
+ * Returns null if no Bulgarian voice is found so the engine uses native lang matching.
  */
-async function pickBrowserVoice(langCode = 'bg-BG') {
-  const voices = await getBrowserVoices()
+function pickBrowserVoice(langCode = 'bg-BG') {
+  if (!window.speechSynthesis) return null
+  const voices = window.speechSynthesis.getVoices() || []
   if (voices.length === 0) return null
 
   const targetLang = langCode.toLowerCase()
   const targetPrefix = targetLang.split('-')[0] // 'bg'
 
   // 1. Exact locale match with natural tag
-  let match = voices.find(v => v.lang.toLowerCase() === targetLang && isNaturalVoice(v))
+  let match = voices.find(v => (v.lang || '').toLowerCase() === targetLang && isNaturalVoice(v))
   // 2. Exact locale match
-  if (!match) match = voices.find(v => v.lang.toLowerCase() === targetLang)
+  if (!match) match = voices.find(v => (v.lang || '').toLowerCase() === targetLang)
   // 3. Language prefix match with natural tag
-  if (!match) match = voices.find(v => v.lang.toLowerCase().startsWith(targetPrefix) && isNaturalVoice(v))
+  if (!match) match = voices.find(v => (v.lang || '').toLowerCase().startsWith(targetPrefix) && isNaturalVoice(v))
   // 4. Any language prefix match
-  if (!match) match = voices.find(v => v.lang.toLowerCase().startsWith(targetPrefix))
-  // 5. Fallback to first voice
-  if (!match) match = voices[0]
+  if (!match) match = voices.find(v => (v.lang || '').toLowerCase().startsWith(targetPrefix))
 
-  return match ?? null
+  // CRITICAL: NEVER return an English voice for Bulgarian Cyrillic text
+  return match || null
 }
 
 /**
  * Browser SpeechSynthesis fallback with Bulgarian voice selection.
  */
 export function fallbackTTS(text, rate = 0.85, langCode = 'bg-BG') {
-  return new Promise(async (resolve) => {
+  return new Promise((resolve) => {
     if (!window.speechSynthesis) {
       resolve('browser-tts')
       return
     }
 
-    window.speechSynthesis.cancel()
+    try {
+      window.speechSynthesis.cancel()
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume()
+      }
 
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = langCode
-    utterance.rate = rate
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = langCode
+      utterance.rate = rate
 
-    const voice = await pickBrowserVoice(langCode)
-    if (voice) {
-      utterance.voice = voice
-    }
+      const voice = pickBrowserVoice(langCode)
+      if (voice) {
+        utterance.voice = voice
+      }
 
-    utterance.onend = () => resolve('browser-tts')
-    utterance.onerror = (e) => {
-      console.warn('[fallbackTTS] Utterance error:', e)
+      utterance.onend = () => resolve('browser-tts')
+      utterance.onerror = (e) => {
+        console.warn('[fallbackTTS] Utterance error:', e)
+        resolve('browser-tts')
+      }
+
+      window.speechSynthesis.speak(utterance)
+    } catch (err) {
+      console.warn('[fallbackTTS] Exception during speak:', err)
       resolve('browser-tts')
     }
-
-    window.speechSynthesis.speak(utterance)
   })
 }
 
