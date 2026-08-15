@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Sparkles, Layers, Volume2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
 import useStore, { MODES } from '../store/useStore'
 import { DECKS } from '../data/decks'
 import { triggerHaptic } from '../utils/haptics'
@@ -52,15 +52,15 @@ export default function LessonView() {
   }
 
   return (
-    <main className="flex-1 px-4 flex flex-col w-full max-w-lg mx-auto relative z-10 min-h-0 overflow-hidden pb-safe">
+    <main className="flex-1 px-3.5 flex flex-col w-full max-w-lg mx-auto relative z-10 min-h-0 overflow-hidden pb-2">
       {/* Mode Selector Pill */}
-      <div className="py-3 flex justify-center flex-shrink-0">
-        <div className="glass-pill rounded-full p-1.5 flex w-full max-w-xs relative shadow-xs border border-white/60">
+      <div className="py-1.5 flex justify-center flex-shrink-0">
+        <div className="glass-pill rounded-full p-1 flex w-full max-w-xs relative shadow-xs border border-white/60">
           <button
             onClick={() => handleModeChange(MODES.BUILD)}
-            className={`flex-1 text-xs font-black py-2.5 rounded-full transition-all no-select button-pop ${
+            className={`flex-1 text-xs font-black py-2 rounded-full transition-all no-select button-pop ${
               currentMode === MODES.BUILD
-                ? 'bg-white text-purple-700 shadow-md scale-100'
+                ? 'bg-white text-purple-700 shadow-sm scale-100'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -68,9 +68,9 @@ export default function LessonView() {
           </button>
           <button
             onClick={() => handleModeChange(MODES.SPEAK)}
-            className={`flex-1 text-xs font-black py-2.5 rounded-full transition-all no-select button-pop ${
+            className={`flex-1 text-xs font-black py-2 rounded-full transition-all no-select button-pop ${
               currentMode === MODES.SPEAK
-                ? 'bg-white text-purple-700 shadow-md scale-100'
+                ? 'bg-white text-purple-700 shadow-sm scale-100'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -80,48 +80,40 @@ export default function LessonView() {
       </div>
 
       {/* Progress & Category Subhead */}
-      <div className="flex items-center justify-between px-2 mb-2 flex-shrink-0">
+      <div className="flex items-center justify-between px-2 mb-1.5 flex-shrink-0">
         <button
           onClick={handlePrev}
           aria-label="Previous phrase"
-          className="p-1.5 rounded-full bg-white/40 text-white hover:bg-white/60 button-pop shadow-xs"
+          className="p-1 rounded-full bg-white/40 text-white hover:bg-white/60 button-pop shadow-xs"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-3.5 h-3.5" />
         </button>
 
         <div className="text-center">
-          <span className="text-xs text-white font-extrabold tracking-wider uppercase drop-shadow-xs">
-            Phrase {currentIndex + 1} of {phrases.length}
+          <span className="text-[11px] text-white font-extrabold tracking-wider uppercase drop-shadow-xs">
+            Phrase {currentIndex + 1} of {phrases.length} · {deck.title}
           </span>
-          <div className="text-[10px] text-white/80 font-bold">
-            {deck.title}
-          </div>
         </div>
 
         <button
           onClick={handleNext}
           aria-label="Next phrase"
-          className="p-1.5 rounded-full bg-white/40 text-white hover:bg-white/60 button-pop shadow-xs"
+          className="p-1 rounded-full bg-white/40 text-white hover:bg-white/60 button-pop shadow-xs"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Main Flashcard Container */}
-      <div className="bg-white/95 backdrop-blur-2xl rounded-[2.2rem] soft-shadow p-5 mb-3 flex-1 flex flex-col min-h-0 border border-white/60 overflow-hidden">
+      <div className="bg-white/95 backdrop-blur-2xl rounded-[1.8rem] soft-shadow p-4 mb-2 flex-1 flex flex-col min-h-0 border border-white/60 overflow-hidden">
         {/* English Prompt Header */}
-        <div className="text-center mb-4 flex-shrink-0">
-          <span className="text-[10px] uppercase font-black tracking-widest text-purple-500 bg-purple-50 px-2.5 py-1 rounded-full mb-2 inline-block">
+        <div className="text-center mb-2 flex-shrink-0">
+          <span className="text-[9px] uppercase font-black tracking-widest text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full mb-1 inline-block">
             Target English
           </span>
-          <h2 className="text-2xl font-black text-gray-900 leading-tight px-2">
+          <h2 className="text-xl sm:text-2xl font-black text-gray-900 leading-tight px-1">
             {phrase.en}
           </h2>
-          {phrase.notes && (
-            <p className="text-[11px] text-gray-400 font-medium mt-1 italic">
-              💡 {phrase.notes}
-            </p>
-          )}
         </div>
 
         {/* Dynamic Mode Content */}
@@ -163,17 +155,17 @@ export default function LessonView() {
       </div>
 
       {/* Footer Next Button */}
-      <div className="w-full flex-shrink-0 pt-1">
+      <div className="w-full flex-shrink-0 pt-0.5">
         <button
           onClick={handleNext}
-          className={`w-full py-4 rounded-2xl text-base font-black button-pop no-select soft-shadow flex items-center justify-center gap-2 transition-all ${
+          className={`w-full py-3 rounded-xl text-sm font-black button-pop no-select soft-shadow flex items-center justify-center gap-1.5 transition-all ${
             phraseCompleted || isCurrentPhraseDone
               ? 'bg-gradient-to-r from-gray-900 to-black text-white hover:brightness-110'
-              : 'bg-white/80 hover:bg-white text-gray-800 border border-white/60'
+              : 'bg-white/85 hover:bg-white text-gray-800 border border-white/60'
           }`}
         >
           <span>Next Phrase</span>
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
     </main>
