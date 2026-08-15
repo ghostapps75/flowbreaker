@@ -14,6 +14,9 @@ export const ELEVENLABS_VOICES = [
   { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Crisp & natural male voice' },
 ]
 
+// In-memory audio cache to prevent redundant ElevenLabs API calls
+const _audioBlobCache = new Map()
+
 // Pre-warm browser voices on module load
 if (typeof window !== 'undefined' && window.speechSynthesis) {
   window.speechSynthesis.onvoiceschanged = () => {
@@ -87,7 +90,7 @@ export function fallbackTTS(text, rate = 0.85, langCode = 'bg-BG') {
 
       utterance.onend = () => resolve('browser-tts')
       utterance.onerror = (e) => {
-        console.warn('[fallbackTTS] Utterance error:', e)
+        console.warn('[fallbackTTS] Utterance notice:', e)
         resolve('browser-tts')
       }
 
@@ -115,6 +118,11 @@ export async function synthesizeSpeech({
     return fallbackTTS(text, speed, langCode)
   }
 
+  const cacheKey = `${voiceId}_${speed}_${text}`
+  if (_audioBlobCache.has(cacheKey)) {
+    return _audioBlobCache.get(cacheKey)
+  }
+
   try {
     const response = await fetch(`${BASE_URL}/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -140,9 +148,11 @@ export async function synthesizeSpeech({
     }
 
     const blob = await response.blob()
-    return URL.createObjectURL(blob)
+    const url = URL.createObjectURL(blob)
+    _audioBlobCache.set(cacheKey, url)
+    return url
   } catch (error) {
-    console.warn('[ElevenLabs] Falling back to browser TTS:', error.message)
+    console.warn('[ElevenLabs] Error:', error.message)
     return fallbackTTS(text, speed, langCode)
   }
 }
