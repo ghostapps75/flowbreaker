@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// useAudio.js — Hook for Bulgarian Speech Synthesis
+// useAudio.js — Single-Stream Hook for Bulgarian Speech Synthesis
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useCallback } from 'react'
 import useStore from '../store/useStore'
@@ -7,6 +7,8 @@ import { synthesizeSpeech, playAudioUrl } from '../services/elevenLabsService'
 
 export default function useAudio() {
   const audioRef = useRef(null)
+  const requestIdRef = useRef(0)
+
   const {
     elevenLabsKey,
     selectedVoiceId,
@@ -19,12 +21,16 @@ export default function useAudio() {
 
   const speak = useCallback(
     (text, id = null, langCode = 'bg-BG') => {
-      // Cancel previous playing audio
+      // Increment request ID so any older pending async calls are discarded
+      const currentReqId = ++requestIdRef.current
+
+      // Stop any existing playing audio immediately
       if (audioRef.current) {
         audioRef.current.pause()
+        audioRef.current.src = ''
         audioRef.current = null
       }
-      if (window.speechSynthesis) {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel()
       }
 
@@ -32,7 +38,11 @@ export default function useAudio() {
 
       return new Promise(async (resolve) => {
         try {
-          const activeKey = elevenLabsKey || import.meta.env.VITE_ELEVENLABS_API_KEY || 'sk_1db8ed20ca30891dd6834e909d48b788653af351d13f9594'
+          const activeKey =
+            elevenLabsKey ||
+            import.meta.env.VITE_ELEVENLABS_API_KEY ||
+            'sk_1db8ed20ca30891dd6834e909d48b788653af351d13f9594'
+
           const url = await synthesizeSpeech({
             text,
             voiceId: selectedVoiceId,
@@ -43,16 +53,26 @@ export default function useAudio() {
             langCode,
           })
 
+          // If another speak request started while we were synthesizing, discard this one
+          if (currentReqId !== requestIdRef.current) {
+            resolve()
+            return
+          }
+
           if (url && url !== 'browser-tts') {
             const audio = playAudioUrl(url, 1)
             audioRef.current = audio
             if (audio) {
               audio.onended = () => {
-                stopAudioPlaying()
+                if (currentReqId === requestIdRef.current) {
+                  stopAudioPlaying()
+                }
                 resolve()
               }
               audio.onerror = () => {
-                stopAudioPlaying()
+                if (currentReqId === requestIdRef.current) {
+                  stopAudioPlaying()
+                }
                 resolve()
               }
             } else {
@@ -66,7 +86,9 @@ export default function useAudio() {
           }
         } catch (err) {
           console.warn('[useAudio] Error in speech synthesis:', err)
-          stopAudioPlaying()
+          if (currentReqId === requestIdRef.current) {
+            stopAudioPlaying()
+          }
           resolve()
         }
       })
@@ -83,11 +105,13 @@ export default function useAudio() {
   )
 
   const stop = useCallback(() => {
+    requestIdRef.current++
     if (audioRef.current) {
       audioRef.current.pause()
+      audioRef.current.src = ''
       audioRef.current = null
     }
-    if (window.speechSynthesis) {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel()
     }
     stopAudioPlaying()

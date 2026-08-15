@@ -45,8 +45,14 @@ export default function DeconstructMode({ phrase, onComplete, isCompleted }) {
     setIsOverDropzone(false)
   }, [phrase])
 
+  const lastTapTimeRef = useRef(0)
+
   // Tap a word in bank -> Speak word out loud
   const handleWordClick = (id, text) => {
+    const now = Date.now()
+    if (now - lastTapTimeRef.current < 250) return
+    lastTapTimeRef.current = now
+
     triggerHaptic('light')
     setActiveSpeakingWordId(id)
     speak(text, `word-${id}`).finally(() => {
@@ -267,7 +273,6 @@ export default function DeconstructMode({ phrase, onComplete, isCompleted }) {
                 onDrag={handleDrag}
                 onDragEnd={(e, info) => handleDragEnd(e, info, wordObj)}
                 onTap={() => handleWordClick(wordObj.id, wordObj.text)}
-                onClick={() => handleWordClick(wordObj.id, wordObj.text)}
                 className={`px-4 py-3 rounded-2xl font-bold text-base cursor-grab select-none button-pop transition-colors flex items-center gap-2 touch-none ${
                   isSpeaking
                     ? 'bg-purple-100 text-purple-900 border-2 border-purple-400 shadow-md ring-2 ring-purple-300'
@@ -275,21 +280,11 @@ export default function DeconstructMode({ phrase, onComplete, isCompleted }) {
                 }`}
               >
                 <span>{wordObj.text}</span>
-                <button
-                  type="button"
-                  onPointerDown={(e) => {
-                    e.stopPropagation()
-                    handleWordClick(wordObj.id, wordObj.text)
-                  }}
-                  className="p-1 -mr-1 rounded-full hover:bg-purple-100 text-gray-400 hover:text-purple-600 transition-colors"
-                  aria-label="Listen to word"
-                >
-                  <Volume2
-                    className={`w-4 h-4 transition-colors ${
-                      isSpeaking ? 'text-purple-600 animate-pulse' : 'text-gray-400 hover:text-purple-500'
-                    }`}
-                  />
-                </button>
+                <Volume2
+                  className={`w-4 h-4 transition-colors pointer-events-none ${
+                    isSpeaking ? 'text-purple-600 animate-pulse' : 'text-gray-400 hover:text-purple-500'
+                  }`}
+                />
               </motion.div>
             )
           })}
