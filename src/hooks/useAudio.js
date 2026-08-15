@@ -32,10 +32,11 @@ export default function useAudio() {
 
       return new Promise(async (resolve) => {
         try {
+          const activeKey = elevenLabsKey || import.meta.env.VITE_ELEVENLABS_API_KEY || 'sk_1db8ed20ca30891dd6834e909d48b788653af351d13f9594'
           const url = await synthesizeSpeech({
             text,
             voiceId: selectedVoiceId,
-            apiKey: elevenLabsKey,
+            apiKey: activeKey,
             stability: ttsStability,
             similarityBoost: ttsSimilarityBoost,
             speed: ttsSpeed,
