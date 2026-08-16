@@ -40,8 +40,7 @@ export default function useAudio() {
         try {
           const activeKey =
             elevenLabsKey ||
-            import.meta.env.VITE_ELEVENLABS_API_KEY ||
-            'sk_1db8ed20ca30891dd6834e909d48b788653af351d13f9594'
+            import.meta.env.VITE_ELEVENLABS_API_KEY
 
           const url = await synthesizeSpeech({
             text,
