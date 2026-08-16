@@ -10,7 +10,6 @@ export default function useAudio() {
   const requestIdRef = useRef(0)
 
   const {
-    elevenLabsKey,
     selectedVoiceId,
     ttsSpeed,
     ttsStability,
@@ -38,14 +37,9 @@ export default function useAudio() {
 
       return new Promise(async (resolve) => {
         try {
-          const activeKey =
-            elevenLabsKey ||
-            import.meta.env.VITE_ELEVENLABS_API_KEY
-
           const url = await synthesizeSpeech({
             text,
             voiceId: selectedVoiceId,
-            apiKey: activeKey,
             stability: ttsStability,
             similarityBoost: ttsSimilarityBoost,
             speed: ttsSpeed,
@@ -93,7 +87,6 @@ export default function useAudio() {
       })
     },
     [
-      elevenLabsKey,
       selectedVoiceId,
       ttsSpeed,
       ttsStability,

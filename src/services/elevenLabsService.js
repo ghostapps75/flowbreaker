@@ -1,8 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// elevenLabsService.js — ElevenLabs Bulgarian TTS + Smart Native Voice Fallback
+// elevenLabsService.js — ElevenLabs Bulgarian TTS via Netlify Proxy + Fallback
+//
+// The API key is never in the browser. All ElevenLabs calls go through
+// the /.netlify/functions/tts serverless proxy.
 // ─────────────────────────────────────────────────────────────────────────────
-
-const BASE_URL = 'https://api.elevenlabs.io/v1'
 
 export const ELEVENLABS_VOICES = [
   { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Calm & natural female voice' },
@@ -14,7 +15,7 @@ export const ELEVENLABS_VOICES = [
   { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Crisp & natural male voice' },
 ]
 
-// In-memory audio cache to prevent redundant ElevenLabs API calls
+// In-memory audio cache to prevent redundant proxy calls
 const _audioBlobCache = new Map()
 
 // Pre-warm browser voices on module load
@@ -103,56 +104,48 @@ export function fallbackTTS(text, rate = 0.85, langCode = 'bg-BG') {
 }
 
 /**
- * Synthesize speech via ElevenLabs with seamless fallback to browser TTS.
+ * Synthesize speech via the Netlify TTS proxy with seamless fallback to browser TTS.
+ * The ElevenLabs API key is handled server-side — it never reaches the browser.
  */
 export async function synthesizeSpeech({
   text,
   voiceId = '21m00Tcm4TlvDq8ikWAM',
-  apiKey,
   stability = 0.55,
   similarityBoost = 0.75,
   speed = 0.85,
   langCode = 'bg-BG',
 }) {
-  if (!apiKey) {
-    return fallbackTTS(text, speed, langCode)
-  }
-
   const cacheKey = `${voiceId}_${speed}_${text}`
   if (_audioBlobCache.has(cacheKey)) {
     return _audioBlobCache.get(cacheKey)
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/text-to-speech/${voiceId}`, {
+    const response = await fetch('/.netlify/functions/tts', {
       method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg',
-      },
-      body: JSON.stringify({
-        text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability,
-          similarity_boost: similarityBoost,
-          speed,
-        },
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voiceId, stability, similarityBoost, speed }),
     })
 
     if (!response.ok) {
-      const err = await response.text()
-      throw new Error(`ElevenLabs API error ${response.status}: ${err}`)
+      throw new Error(`Proxy error ${response.status}`)
     }
 
-    const blob = await response.blob()
+    const { audio } = await response.json()
+
+    // Decode base64 audio returned by the proxy into a blob URL
+    const binary = atob(audio)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i)
+    }
+    const blob = new Blob([bytes], { type: 'audio/mpeg' })
     const url = URL.createObjectURL(blob)
+
     _audioBlobCache.set(cacheKey, url)
     return url
   } catch (error) {
-    console.warn('[ElevenLabs] Error:', error.message)
+    console.warn('[ElevenLabs proxy] Error, falling back to browser TTS:', error.message)
     return fallbackTTS(text, speed, langCode)
   }
 }

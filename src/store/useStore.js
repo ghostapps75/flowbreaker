@@ -35,7 +35,6 @@ const useStore = create(
       },
 
       // ── Voice / TTS Configuration ─────────────────────────────────────
-      elevenLabsKey: import.meta.env.VITE_ELEVENLABS_API_KEY || '',
       selectedVoiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel
       ttsSpeed: 0.85,
       ttsStability: 0.55,
@@ -100,7 +99,6 @@ const useStore = create(
       },
 
       // ── Voice Settings Modifiers ──────────────────────────────────────
-      setElevenLabsKey: (key) => set({ elevenLabsKey: key }),
       setSelectedVoiceId: (id) => set({ selectedVoiceId: id }),
       setTtsSpeed: (speed) => set({ ttsSpeed: speed }),
       setTtsStability: (v) => set({ ttsStability: v }),
@@ -119,7 +117,6 @@ const useStore = create(
       partialize: (s) => ({
         completedPhrases: s.completedPhrases,
         stats: s.stats,
-        elevenLabsKey: s.elevenLabsKey,
         selectedVoiceId: s.selectedVoiceId,
         ttsSpeed: s.ttsSpeed,
         ttsStability: s.ttsStability,
